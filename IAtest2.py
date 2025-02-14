@@ -11,7 +11,7 @@ from scipy.stats import linregress
 #########################################
 # Hyper-paramètres et paramètres de contrôle
 #########################################
-initial_pays = "GBR" # Code ISO 3166-1 alpha-3 du pays (exemple : "BEL" pour la Belgique)
+initial_pays = "FRA" # Code ISO 3166-1 alpha-3 du pays (exemple : "BEL" pour la Belgique ou "GBR" pour le Royaume-Uni)
 # URL des données (GADM 4.1 pour la Belgique - shapefile niveau 0)
 DATA_URL = f"https://geodata.ucdavis.edu/gadm/gadm4.1/shp/gadm41_{initial_pays}_shp.zip"
 # Répertoire de sortie pour l'extraction des fichiers
@@ -68,10 +68,10 @@ else:
 # 2. Chargement du shapefile et affichage de la carte
 #########################################
 shapefile_path = os.path.join(OUTPUT_DIR, SHAPEFILE_NAME)
-belgique = gpd.read_file(shapefile_path)
+pays_contours = gpd.read_file(shapefile_path)
 
 fig, ax = plt.subplots(figsize=(8, 8))
-belgique.plot(ax=ax, edgecolor='black', facecolor='lightgray')
+pays_contours.plot(ax=ax, edgecolor='black', facecolor='lightgray')
 ax.set_axis_off()
 plt.title(f"Carte du pays associé au code ISO 3166-1 alpha-3 : {initial_pays}")
 plt.show()
@@ -95,7 +95,7 @@ def extract_exterior_coords(geom):
     else:
         return np.empty((0, 2))
 
-for geom in belgique.geometry:
+for geom in pays_contours.geometry:
     pts = extract_exterior_coords(geom)
     if pts.size > 0:
         all_points.append(pts)
@@ -120,8 +120,8 @@ def boxcount(points, box_size):
     return unique_boxes.shape[0]
 
 # Définir l'intervalle de taille de boîte
-min_bound = min(belgique.total_bounds[2] - belgique.total_bounds[0],
-                belgique.total_bounds[3] - belgique.total_bounds[1])
+min_bound = min(pays_contours.total_bounds[2] - pays_contours.total_bounds[0],
+                pays_contours.total_bounds[3] - pays_contours.total_bounds[1])
 min_box = min_bound / 100.0  # Taille minimale : 1% de l'étendue minimale
 max_box = min_bound          # Taille maximale
 
