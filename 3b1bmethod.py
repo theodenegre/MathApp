@@ -135,7 +135,7 @@ def calculate_box_counting(shapefile_path, num_levels):
     counter = GridCounter(bounds)
     width = bounds[2] - bounds[0]
     height = bounds[3] - bounds[1]
-    initial_box_size = max(width, height)
+    initial_box_size = max(width, height) / 2
 
     box_sizes = []
     box_counts = []
@@ -225,18 +225,25 @@ def compare_speed(shapefile_path, num_levels):
     print("-" * 65)
 
 
-
-if __name__ == "__main__":
-    pays = "BEL"
-    shapefile_path = f'gadm41_{pays}_shp/gadm41_{pays}_0.shp'
-    num_levels = 8
-
-    # compare_speed(shapefile_path, num_levels)
-
-    coastline, counter, box_sizes, box_counts = calculate_box_counting(shapefile_path, num_levels)
+def print_and_plot(shapefile_path, num_levels):
+    print("Calculating fractal dimension using Box Counting Method...")
+    coastline, counter, box_sizes, box_counts = calculate_box_counting(
+        shapefile_path, num_levels)
     fractal_dimension = calculate_fractal_dimension(box_sizes, box_counts)
 
-    print(f"Fractal dimension of {pays} : {fractal_dimension}")
+    print(f"Fractal dimension of {shapefile_path} : {fractal_dimension}")
 
+    print("Plotting box counting levels...")
     plot_box_counting_levels(coastline, counter, num_levels)
+    print("Plotting regression line...")
     plot_box_counting_regression(box_sizes, box_counts, fractal_dimension)
+
+
+if __name__ == "__main__":
+    pays = "NOR"
+    shapefile_path = f'gadm41_{pays}_shp/gadm41_{pays}_0.shp'
+    shapefile_path = f'peano_curve.shp'
+    num_levels = 4
+
+    # compare_speed(shapefile_path, num_levels)
+    print_and_plot(shapefile_path, num_levels)
