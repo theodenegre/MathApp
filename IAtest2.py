@@ -9,19 +9,7 @@ import numpy as np
 from scipy.stats import linregress
 from matplotlib.animation import FuncAnimation
 
-#########################################
-# Hyper-paramètres et paramètres de contrôle
-#########################################
-initial_pays = "BEL"
-DATA_URL = f"https://geodata.ucdavis.edu/gadm/gadm4.1/shp/gadm41_{initial_pays}_shp.zip"
-OUTPUT_DIR = f"gadm41_{initial_pays}_shp"
-SHAPEFILE_NAME = f"gadm41_{initial_pays}_0.shp"
-MAX_RETRIES = 3
-RETRY_DELAY = 5
-ABS_ERR = 1e-3
-n_scales_initial = 100
-n_scales_max = 1000
-STEP_SCALES = (n_scales_max - n_scales_initial) // 10
+
 
 
 #########################################
@@ -41,6 +29,12 @@ def calculate_fractal_dimension(points, n_scales_initial=100, max_scales=1000,
                                 abs_err=1e-3, step_scales=100):
     """
     Calcul optimisé de la dimension fractale avec contrôle de convergence
+    :param points: Coordonnées des points du contour
+    :param n_scales_initial: Nombre initial d'échelles
+    :param max_scales: Nombre maximal d'échelles
+    :param abs_err: Tolérance absolue pour la convergence
+    :param step_scales: Pas d'incrémentation du nombre d'échelles
+    :return: Tuple contenant les résultats finaux et le nombre d'échelles utilisées
     """
     min_coords = points.min(axis=0)
     max_coords = points.max(axis=0)
@@ -181,88 +175,104 @@ def create_box_counting_animation_with_fill(points, viz_box_sizes):
     plt.show()
 
 
-#########################################
-# Programme principal
-#########################################
-# 1. Téléchargement et extraction des données
-shapefile_path = os.path.join(OUTPUT_DIR, SHAPEFILE_NAME)
 
-if os.path.exists(shapefile_path):
-    print(
-        f"Le fichier {SHAPEFILE_NAME} existe déjà. Utilisation des données existantes.")
-else:
-    print("Téléchargement des données...")
-    response = None
-    for attempt in range(MAX_RETRIES):
-        try:
-            print(f"Tentative {attempt + 1}/{MAX_RETRIES}...")
-            response = requests.get(DATA_URL, timeout=10)
-            response.raise_for_status()
-            print("Téléchargement réussi.")
-            break
-        except requests.exceptions.RequestException as e:
-            print(f"Tentative {attempt + 1}/{MAX_RETRIES} échouée : {e}")
-            time.sleep(RETRY_DELAY)
 
-    if response is None or response.status_code != 200:
-        raise Exception("Toutes les tentatives de téléchargement ont échoué.")
+if __name__ == "__main__":
+    #########################################
+    # Hyper-paramètres et paramètres de contrôle
+    #########################################
+    initial_pays = "BEL"
+    DATA_URL = f"https://geodata.ucdavis.edu/gadm/gadm4.1/shp/gadm41_{initial_pays}_shp.zip"
+    SHAPEFILE_NAME = f"gadm41_{initial_pays}_0.shp"
+    OUTPUT_DIR = f"gadm41_{initial_pays}_shp"
+    MAX_RETRIES = 3
+    RETRY_DELAY = 5
+    ABS_ERR = 1e-3
+    n_scales_initial = 100
+    n_scales_max = 1000
+    STEP_SCALES = (n_scales_max - n_scales_initial) // 10
 
-    if not os.path.exists(OUTPUT_DIR):
-        os.makedirs(OUTPUT_DIR)
+    #########################################
+    # Programme principal
+    #########################################
+    # 1. Téléchargement et extraction des données
+    shapefile_path = os.path.join(OUTPUT_DIR, SHAPEFILE_NAME)
 
-    with zipfile.ZipFile(io.BytesIO(response.content)) as z:
-        z.extractall(OUTPUT_DIR)
-    print("Extraction terminée.")
+    if os.path.exists(shapefile_path):
+        print(
+            f"Le fichier {SHAPEFILE_NAME} existe déjà. Utilisation des données existantes.")
+    else:
+        print("Téléchargement des données...")
+        response = None
+        for attempt in range(MAX_RETRIES):
+            try:
+                print(f"Tentative {attempt + 1}/{MAX_RETRIES}...")
+                response = requests.get(DATA_URL, timeout=10)
+                response.raise_for_status()
+                print("Téléchargement réussi.")
+                break
+            except requests.exceptions.RequestException as e:
+                print(f"Tentative {attempt + 1}/{MAX_RETRIES} échouée : {e}")
+                time.sleep(RETRY_DELAY)
 
-# 2. Chargement et affichage de la carte
-pays_contours = gpd.read_file(shapefile_path)
+        if response is None or response.status_code != 200:
+            raise Exception("Toutes les tentatives de téléchargement ont échoué.")
 
-fig, ax = plt.subplots(figsize=(8, 8))
-pays_contours.plot(ax=ax, edgecolor='black', facecolor='lightgray')
-ax.set_axis_off()
-plt.title(f"Carte du pays : {initial_pays}")
-plt.show()
+        if not os.path.exists(OUTPUT_DIR):
+            os.makedirs(OUTPUT_DIR)
 
-# 3. Extraction des points du contour
-all_points = []
-for geom in pays_contours.geometry:
-    pts = extract_exterior_coords(geom)
-    if pts.size > 0:
-        all_points.append(pts)
+        with zipfile.ZipFile(io.BytesIO(response.content)) as z:
+            z.extractall(OUTPUT_DIR)
+        print("Extraction terminée.")
 
-if len(all_points) == 0:
-    raise Exception(
-        "Aucun point extrait pour le calcul de la dimension fractale.")
+    # 2. Chargement et affichage de la carte
+    pays_contours = gpd.read_file(shapefile_path)
 
-points = np.concatenate(all_points, axis=0)
+    fig, ax = plt.subplots(figsize=(8, 8))
+    pays_contours.plot(ax=ax, edgecolor='black', facecolor='lightgray')
+    ax.set_axis_off()
+    plt.title(f"Carte du pays : {initial_pays}")
+    plt.show()
 
-# 4. Calcul de la dimension fractale
-results, n_scales = calculate_fractal_dimension(points,
-                                                n_scales_initial=n_scales_initial,
-                                                max_scales=n_scales_max,
-                                                abs_err=ABS_ERR,
-                                                step_scales=STEP_SCALES)
+    # 3. Extraction des points du contour
+    all_points = []
+    for geom in pays_contours.geometry:
+        pts = extract_exterior_coords(geom)
+        if pts.size > 0:
+            all_points.append(pts)
 
-fractal_dim = plot_results(results, n_scales)
-print(f"Dimension fractale estimée : {fractal_dim:.3f}")
+    if len(all_points) == 0:
+        raise Exception(
+            "Aucun point extrait pour le calcul de la dimension fractale.")
 
-# 5. Visualisation du box-counting
-min_bound = min(pays_contours.total_bounds[2] - pays_contours.total_bounds[0],
-                pays_contours.total_bounds[3] - pays_contours.total_bounds[1])
-min_box = min_bound / 100.0
-max_box = min_bound
+    points = np.concatenate(all_points, axis=0)
 
-n_viz = 4
-viz_box_sizes = np.logspace(np.log10(min_box), np.log10(max_box), num=n_viz)
+    # 4. Calcul de la dimension fractale
+    results, n_scales = calculate_fractal_dimension(points,
+                                                    n_scales_initial=n_scales_initial,
+                                                    max_scales=n_scales_max,
+                                                    abs_err=ABS_ERR,
+                                                    step_scales=STEP_SCALES)
+    fractal_dim = plot_results(results, n_scales)
+    print(f"Dimension fractale estimée : {fractal_dim:.3f}")
 
-fig, axes = plt.subplots(2, 2, figsize=(15, 15))
-axes = axes.ravel()
+    # 5. Visualisation du box-counting
+    min_bound = min(pays_contours.total_bounds[2] - pays_contours.total_bounds[0],
+                    pays_contours.total_bounds[3] - pays_contours.total_bounds[1])
+    min_box = min_bound / 100.0
+    max_box = min_bound
 
-for i, box_size in enumerate(viz_box_sizes):
-    plot_box_counting_step_with_fill(points, box_size, axes[i])
+    n_viz = 4
+    viz_box_sizes = np.logspace(np.log10(min_box), np.log10(max_box), num=n_viz)
 
-plt.tight_layout()
-plt.show()
+    fig, axes = plt.subplots(2, 2, figsize=(15, 15))
+    axes = axes.ravel()
 
-# 6. Animation (optionnelle)
-create_box_counting_animation_with_fill(points, viz_box_sizes)
+    for i, box_size in enumerate(viz_box_sizes):
+        plot_box_counting_step_with_fill(points, box_size, axes[i])
+
+    plt.tight_layout()
+    plt.show()
+
+    # 6. Animation (optionnelle)
+    create_box_counting_animation_with_fill(points, viz_box_sizes)

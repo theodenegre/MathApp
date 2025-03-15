@@ -1,0 +1,95 @@
+import os
+import fiona
+from shapely.geometry import Polygon, mapping
+from itertools import product
+
+
+def menger_sponge_2d(coords, size, iterations):
+    """
+    Génère les carrés restants de l'éponge de Menger dans une structure 2D.
+
+    :param coords: Tuple (x, y) des coordonnées du coin inférieur-gauche du carré.
+    :param size: Taille (longueur d'un côté) du carré.
+    :param iterations: Nombre d'itérations pour la génération de l'éponge.
+    :return: Liste de carrés restants sous forme de [(x, y, size), ...].
+    """
+    if iterations == 0:
+        return [(*coords, size)]
+
+    x, y = coords
+    next_size = size / 3  # Taille des sous-carrés dans cette étape
+    squares = []
+
+    # Parcourir chaque sous-carré dans une grille 3x3
+    for dx, dy in product(range(3), repeat=2):
+        sub_x, sub_y = x + dx * next_size, y + dy * next_size
+
+        # Exclure le carré central (1,1) dans la grille 3x3
+        if dx == 1 and dy == 1:
+            continue
+
+        # Répéter pour les itérations restantes
+        squares.extend(menger_sponge_2d((sub_x, sub_y), next_size, iterations - 1))
+    return squares
+
+
+def square_to_polygon(x, y, size):
+    """
+    Convertit un carré en sa représentation polygonale.
+
+    :param x: Coordonnée X du coin inférieur gauche.
+    :param y: Coordonnée Y du coin inférieur gauche.
+    :param size: Taille d'un côté du carré.
+    :return: Un objet `Polygon` représentant le carré.
+    """
+    return Polygon([
+        (x, y),  # Coin inférieur-gauche
+        (x + size, y),  # Coin inférieur-droit
+        (x + size, y + size),  # Coin supérieur-droit
+        (x, y + size),  # Coin supérieur-gauche
+        (x, y),  # Retour au point initial pour fermer le polygone
+    ])
+
+
+# Vérifier ou créer un dossier simpleSHP
+output_folder = "simpleSHP"
+os.makedirs(output_folder, exist_ok=True)
+
+# Chemin pour le fichier généré
+shp_file = os.path.join(output_folder, "menger_sponge.shp")
+
+# Paramètres initiaux : taille, itérations, coordonnées de départ
+iterations = 6  # Attention, la croissance est exponentielle !
+initial_size = 1  # Taille initiale du carré
+initial_square = (0, 0)  # Coordonnées du coin inférieur-gauche initial
+
+# Générer les carrés de l'éponge de Menger
+squares = menger_sponge_2d(initial_square, initial_size, iterations)
+
+# Définir le schéma pour écrire dans le fichier Shapefile
+schema = {
+    'geometry': 'Polygon',  # Type de géométrie représentée (polygone en 2D)
+    'properties': {'id': 'int'},  # Ajouter une propriété ID pour chaque élément
+}
+
+# Écriture dans un fichier Shapefile
+with fiona.open(
+    shp_file,
+    mode='w',
+    driver='ESRI Shapefile',
+    crs='EPSG:4326',  # Système de projection (abstrait ici)
+    schema=schema,
+) as layer:
+    polygon_id = 0
+    for square in squares:
+        x, y, size = square
+
+        # Créer un polygone pour ce carré
+        poly = square_to_polygon(x, y, size)
+        polygon_id += 1
+        layer.write({
+            'geometry': mapping(poly),  # Transformation en format compatible Fiona
+            'properties': {'id': polygon_id},  # Un ID unique pour chaque carré
+        })
+
+print(f"Shapefile représentant l'éponge de Menger en 2D (itérations={iterations}) créé : {shp_file}")
