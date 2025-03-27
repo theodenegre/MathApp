@@ -1,5 +1,5 @@
 import os
-import fiona
+import json
 from shapely.geometry import Polygon, mapping
 from itertools import product
 
@@ -51,12 +51,12 @@ def square_to_polygon(x, y, size):
     ])
 
 
-# Vérifier ou créer un dossier simpleSHP
-output_folder = "simpleSHP"
+# Vérifier ou créer un dossier simpleGEO
+output_folder = "simpleGEO"
 os.makedirs(output_folder, exist_ok=True)
 
 # Chemin pour le fichier généré
-shp_file = os.path.join(output_folder, "menger_sponge.shp")
+geojson_file = os.path.join(output_folder, "menger_sponge.geojson")
 
 # Paramètres initiaux : taille, itérations, coordonnées de départ
 iterations = 6  # Attention, la croissance est exponentielle !
@@ -66,30 +66,28 @@ initial_square = (0, 0)  # Coordonnées du coin inférieur-gauche initial
 # Générer les carrés de l'éponge de Menger
 squares = menger_sponge_2d(initial_square, initial_size, iterations)
 
-# Définir le schéma pour écrire dans le fichier Shapefile
-schema = {
-    'geometry': 'Polygon',  # Type de géométrie représentée (polygone en 2D)
-    'properties': {'id': 'int'},  # Ajouter une propriété ID pour chaque élément
+# Préparer les données GeoJSON
+features = []
+polygon_id = 0
+for square in squares:
+    x, y, size = square
+
+    # Créer un polygone pour ce carré
+    poly = square_to_polygon(x, y, size)
+    polygon_id += 1
+    features.append({
+        'type': 'Feature',
+        'geometry': mapping(poly),  # Transformation en format compatible GeoJSON
+        'properties': {'id': polygon_id},  # Un ID unique pour chaque carré
+    })
+
+geojson_data = {
+    'type': 'FeatureCollection',
+    'features': features,
 }
 
-# Écriture dans un fichier Shapefile
-with fiona.open(
-    shp_file,
-    mode='w',
-    driver='ESRI Shapefile',
-    crs='EPSG:4326',  # Système de projection (abstrait ici)
-    schema=schema,
-) as layer:
-    polygon_id = 0
-    for square in squares:
-        x, y, size = square
+# Écriture dans un fichier GeoJSON
+with open(geojson_file, 'w') as f:
+    json.dump(geojson_data, f)
 
-        # Créer un polygone pour ce carré
-        poly = square_to_polygon(x, y, size)
-        polygon_id += 1
-        layer.write({
-            'geometry': mapping(poly),  # Transformation en format compatible Fiona
-            'properties': {'id': polygon_id},  # Un ID unique pour chaque carré
-        })
-
-print(f"Shapefile représentant l'éponge de Menger en 2D (itérations={iterations}) créé : {shp_file}")
+print(f"GeoJSON représentant l'éponge de Menger en 2D (itérations={iterations}) créé : {geojson_file}")

@@ -1,5 +1,5 @@
 import os
-import fiona
+import json
 from shapely.geometry import Polygon, LineString, mapping
 import numpy as np
 
@@ -47,12 +47,12 @@ def koch_snowflake(iterations):
     return points
 
 
-# Vérifier ou créer un dossier simpleSHP
-output_folder = "simpleSHP"
+# Vérifier ou créer un dossier simpleGEO
+output_folder = "simpleGEO"
 os.makedirs(output_folder, exist_ok=True)
 
 # Chemin pour le fichier généré
-shp_file = os.path.join(output_folder, "koch_snowflake.shp")
+geojson_file = os.path.join(output_folder, "koch_snowflake.geojson")
 
 # Paramètre d'itérations
 iterations = 7  # Augmenter pour un flocon plus détaillé
@@ -60,25 +60,25 @@ iterations = 7  # Augmenter pour un flocon plus détaillé
 # Générer les points de la courbe
 snowflake_points = koch_snowflake(iterations)
 
-# Définir le schéma pour écrire dans le fichier Shapefile
-schema = {
-    'geometry': 'LineString',  # Type de géométrie représentée
-    'properties': {'id': 'int'},
+# Créer la géométrie LineString
+line = LineString(snowflake_points)
+
+# Créer le GeoJSON Feature
+feature = {
+    "type": "Feature",
+    "geometry": mapping(line),
+    "properties": {"id": 1}
 }
 
-# Écriture dans un fichier Shapefile
-with fiona.open(
-        shp_file,
-        mode='w',
-        driver='ESRI Shapefile',
-        crs='EPSG:4326',
-        schema=schema,
-) as layer:
-    line = LineString(snowflake_points)
-    layer.write({
-        'geometry': mapping(line),
-        'properties': {'id': 1},
-    })
+# Créer le GeoJSON FeatureCollection
+feature_collection = {
+    "type": "FeatureCollection",
+    "features": [feature]
+}
+
+# Écriture dans un fichier GeoJSON
+with open(geojson_file, 'w') as f:
+    json.dump(feature_collection, f)
 
 print(
-    f"Shapefile du flocon de Koch en 2D (itérations={iterations}) créé : {shp_file}")
+    f"GeoJSON du flocon de Koch en 2D (itérations={iterations}) créé : {geojson_file}")

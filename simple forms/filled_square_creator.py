@@ -1,13 +1,13 @@
 import os
-import fiona
+import json
 from shapely.geometry import mapping, Polygon
 
-# Vérifier ou créer un dossier simpleSHP
-output_folder = "simpleSHP"
+# Vérifier ou créer un dossier simpleGEO
+output_folder = "simpleGEO"
 os.makedirs(output_folder, exist_ok=True)
 
 # Chemin complet où le fichier sera sauvegardé
-shp_file = os.path.join(output_folder, "squares.shp")
+geojson_file = os.path.join(output_folder, "squares.geojson")
 
 # Définir un carré rempli (Polygon plein)
 square_filled = Polygon([
@@ -16,32 +16,27 @@ square_filled = Polygon([
 
 # Définir un carré vide (Polygon avec un trou)
 outer_square = [(0, 0), (0, 10), (10, 10), (10, 0), (0, 0)]  # Contour externe
-inner_square = [(3, 3), (3, 7), (7, 7), (7, 3), (3, 3)]  # Trou à l'intérieur
-square_empty = Polygon(shell=outer_square, holes=[inner_square])
+square_empty = Polygon(shell=outer_square)
 
-# Définir le schéma pour le Shapefile
-schema = {
-    'geometry': 'Polygon',  # Type de géométrie (polygone)
-    'properties': {'id': 'int'},  # Attributs (un champ "id" de type entier)
+# Créer une collection de fonctionnalités GeoJSON
+geojson_data = {
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "geometry": mapping(square_filled),
+            "properties": {"id": 1}
+        },
+        {
+            "type": "Feature",
+            "geometry": mapping(square_empty),
+            "properties": {"id": 2}
+        }
+    ]
 }
 
-# Écriture dans un fichier Shapefile
-with fiona.open(
-    shp_file,
-    mode='w',
-    driver='ESRI Shapefile',
-    crs='EPSG:4326',  # Système de coordonnées (WGS84 standard)
-    schema=schema,
-) as layer:
-    # Ajouter le carré rempli
-    layer.write({
-        'geometry': mapping(square_filled),  # Transformation en format compatible
-        'properties': {'id': 1},  # Ajouter un attribut ID
-    })
-    # Ajouter le carré vide
-    layer.write({
-        'geometry': mapping(square_empty),  # Transformation en format compatible
-        'properties': {'id': 2},  # Ajouter un autre ID
-    })
+# Écriture dans un fichier GeoJSON
+with open(geojson_file, 'w') as f:
+    json.dump(geojson_data, f)
 
-print(f"Shapefile créé dans le dossier : {shp_file}")
+print(f"GeoJSON créé dans le dossier : {geojson_file}")

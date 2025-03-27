@@ -1,5 +1,5 @@
 import os
-import fiona
+import json
 from shapely.geometry import mapping, Polygon
 from math import cos, sin, pi
 
@@ -53,11 +53,11 @@ def sierpinski_pentagon(vertices, iterations):
 # ----- Génération et exportation -----
 
 # Vérifier ou créer un dossier pour sauvegarder le fichier
-output_folder = "simpleSHP"
+output_folder = "simpleGEO"
 os.makedirs(output_folder, exist_ok=True)
 
 # Chemin où le fichier sera sauvegardé
-shp_file = os.path.join(output_folder, "sierpinski_pentagon.shp")
+geojson_file = os.path.join(output_folder, "sierpinski_pentagon.geojson")
 
 # Nombre d'itérations (profondeur fractale)
 iterations = 6
@@ -72,27 +72,11 @@ initial_pentagon = [
 # Générer les pentagones restants
 pentagons = sierpinski_pentagon(initial_pentagon, iterations)
 
-# Définir le schéma pour le Shapefile
-schema = {
-    'geometry': 'Polygon',  # Type de géométrie
-    'properties': {'id': 'int'},  # Attribut ID
-}
+# Sauvegarder les pentagones dans un fichier GeoJSON
+features = [json.dumps({"type": "Feature", "geometry": mapping(Polygon(pentagon)), "properties": {"id": i}}) for i, pentagon in enumerate(pentagons, start=1)]
+geojson_obj = {"type": "FeatureCollection", "features": features}
 
-# Sauvegarder les pentagones dans un fichier Shapefile
-with fiona.open(
-    shp_file,
-    mode='w',
-    driver='ESRI Shapefile',
-    crs='EPSG:4326',
-    schema=schema,
-) as layer:
-    # Ajouter chaque pentagone comme polygone distinct
-    for i, pentagon in enumerate(pentagons, start=1):
-        # Créer un polygone avec une boucle fermée
-        polygon = Polygon(pentagon)
-        layer.write({
-            'geometry': mapping(polygon),
-            'properties': {'id': i},
-        })
+with open(geojson_file, 'w') as f:
+    json.dump(geojson_obj, f)
 
-print(f"Shapefile représentant le pentagone de Sierpiński (itérations={iterations}) créé : {shp_file}")
+print(f"GeoJSON représentant le pentagone de Sierpiński (itérations={iterations}) créé : {geojson_file}")

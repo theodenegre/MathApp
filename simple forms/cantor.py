@@ -1,7 +1,6 @@
 import os
-import fiona
+import json
 from shapely.geometry import mapping, LineString
-
 
 def cantor(interval, iterations):
     """
@@ -15,45 +14,41 @@ def cantor(interval, iterations):
     if iterations == 0:
         return [(x1, x2)]
     else:
-        # Retirer le tiers central et appeler récursivement sur les deux segments restants
         third = (x2 - x1) / 3
-        left = (x1, x1 + third)  # Segment gauche
-        right = (x2 - third, x2)  # Segment droit
+        left = (x1, x1 + third)
+        right = (x2 - third, x2)
         return cantor(left, iterations - 1) + cantor(right, iterations - 1)
 
-
-# Vérifier ou créer un dossier simpleSHP
-output_folder = "simpleSHP"
+# Vérifier ou créer un dossier simpleGEO
+output_folder = "simpleGEO"
 os.makedirs(output_folder, exist_ok=True)
 
 # Chemin complet où le fichier Cantor sera sauvegardé
-shp_file = os.path.join(output_folder, "cantor.shp")
+geojson_file = os.path.join(output_folder, "cantor.geojson")
 
 # Générer l'ensemble de Cantor
-iterations = 5  # Nombre d'itérations
-initial_interval = (0, 1)  # Intervalle initial [0, 1]
-segments = cantor(initial_interval, iterations)  # Liste des segments sous forme [(x1, x2), ...]
+iterations = 5
+initial_interval = (0, 1)
+segments = cantor(initial_interval, iterations)
 
-# Définir le schéma pour le Shapefile
-schema = {
-    'geometry': 'LineString',  # Type de géométrie (ligne)
-    'properties': {'id': 'int'},  # Attribut "id" pour identifier les segments
+# Construire les entités GeoJSON
+features = []
+for i, (x1, x2) in enumerate(segments, start=1):
+    line = LineString([(x1, 0), (x2, 0)])
+    features.append({
+        "type": "Feature",
+        "geometry": mapping(line),
+        "properties": {"id": i}
+    })
+
+# Structure GeoJSON
+geojson_data = {
+    "type": "FeatureCollection",
+    "features": features
 }
 
-# Écriture dans un fichier Shapefile
-with fiona.open(
-    shp_file,
-    mode='w',
-    driver='ESRI Shapefile',
-    crs='EPSG:4326',  # Système de coordonnées (non critique ici car l'ensemble Cantor est abstrait)
-    schema=schema,
-) as layer:
-    # Ajouter chaque segment comme une ligne
-    for i, (x1, x2) in enumerate(segments, start=1):
-        line = LineString([(x1, 0), (x2, 0)])  # Segment horizontal sur l'axe x
-        layer.write({
-            'geometry': mapping(line),  # Transformation en format compatible Fiona
-            'properties': {'id': i},  # Attribut ID pour identifier le segment
-        })
+# Écriture dans un fichier GeoJSON
+with open(geojson_file, "w", encoding="utf-8") as f:
+    json.dump(geojson_data, f, ensure_ascii=False, indent=4)
 
-print(f"Shapefile représentant l'ensemble de Cantor (itérations={iterations}) créé : {shp_file}")
+print(f"GeoJSON représentant l'ensemble de Cantor (itérations={iterations}) créé : {geojson_file}")

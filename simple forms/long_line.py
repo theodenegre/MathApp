@@ -1,38 +1,34 @@
 import os
-import fiona
-from shapely.geometry import mapping, Polygon
+import json
+from shapely.geometry import mapping, LineString
 
-# Vérifier ou créer un dossier simpleSHP
-output_folder = "simpleSHP"
+# Vérifier ou créer un dossier simpleGEO
+output_folder = "simpleGEO"
 os.makedirs(output_folder, exist_ok=True)
 
 # Chemin complet où le fichier sera sauvegardé
-shp_file = os.path.join(output_folder, "long_line.shp")
+geojson_file = os.path.join(output_folder, "long_line.geojson")
 
 # Définir une ligne (LineString)
-line = Polygon([
-    (0, 0), (0.999 * 500, 0), (0, 0), (0.999 * 500, 0)  # Points qui
-    # définissent la ligne
+line = LineString([
+    (0, 0), (0.999 * 500, 0)  # Points qui définissent la ligne
 ])
 
-# Définir le schéma pour le Shapefile
-schema = {
-    'geometry': 'Polygon',  # Type de géométrie (ligne)
-    'properties': {'id': 'int'},  # Attributs (un champ "id" de type entier)
+# Construire l'entité GeoJSON
+feature = {
+    "type": "Feature",
+    "geometry": mapping(line),
+    "properties": {"id": 1}
 }
 
-# Écriture dans un fichier Shapefile
-with fiona.open(
-    shp_file,
-    mode='w',
-    driver='ESRI Shapefile',
-    crs='EPSG:4326',  # Système de coordonnées (WGS84 standard)
-    schema=schema,
-) as layer:
-    # Ajouter la ligne au Shapefile
-    layer.write({
-        'geometry': mapping(line),  # Transformation en format compatible pour Fiona
-        'properties': {'id': 1},  # Ajouter un attribut ID
-    })
+# Structure GeoJSON
+geojson_data = {
+    "type": "FeatureCollection",
+    "features": [feature]
+}
 
-print(f"Shapefile de la ligne créé dans le dossier : {shp_file}")
+# Écriture dans un fichier GeoJSON
+with open(geojson_file, "w", encoding="utf-8") as f:
+    json.dump(geojson_data, f, ensure_ascii=False, indent=4)
+
+print(f"GeoJSON de la ligne créé dans le dossier : {geojson_file}")

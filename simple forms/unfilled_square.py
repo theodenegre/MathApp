@@ -1,13 +1,13 @@
 import os
-import fiona
+import json
 from shapely.geometry import mapping, LineString
 
-# Vérifier ou créer le dossier simpleSHP
-output_folder = "simpleSHP"
+# Vérifier ou créer le dossier simpleGEO
+output_folder = "simpleGEO"
 os.makedirs(output_folder, exist_ok=True)
 
 # Chemin où le fichier sera sauvegardé
-shp_file = os.path.join(output_folder, "square_borders.shp")
+geojson_file = os.path.join(output_folder, "square_borders.geojson")
 
 # Définition des bordures d'un carré (4 côtés comme des segments de ligne)
 # Carré de côté 10, défini par ses sommets : (0, 0), (0, 10), (10, 10), (10, 0)
@@ -18,25 +18,11 @@ borders = [
     LineString([(10, 0), (0, 0)])  # Bordure du bas
 ]
 
-# Définir le schéma pour le Shapefile
-schema = {
-    'geometry': 'LineString',  # Type de géométrie (ici, polylignes)
-    'properties': {'id': 'int'},  # Attributs (champs) : un champ "id" entier
-}
+# Écriture des bordures dans un fichier GeoJSON
+features = [json.dumps({"type": "Feature", "geometry": mapping(border), "properties": {"id": i}}) for i, border in enumerate(borders, start=1)]
+geojson_obj = {"type": "FeatureCollection", "features": features}
 
-# Écriture des bordures dans un fichier Shapefile
-with fiona.open(
-    shp_file,
-    mode='w',
-    driver='ESRI Shapefile',
-    crs='EPSG:4326',  # Système de coordonnées (WGS84)
-    schema=schema,
-) as layer:
-    # Ajouter chaque bordure de ligne dans le Shapefile
-    for i, border in enumerate(borders, start=1):  # Itération sur les lignes avec un ID
-        layer.write({
-            'geometry': mapping(border),  # Convertir la géométrie en un format supporté par Fiona
-            'properties': {'id': i},  # Ajouter un ID unique pour chaque bordure
-        })
+with open(geojson_file, 'w') as f:
+    json.dump(geojson_obj, f)
 
-print(f"Shapefile des bordures du carré créé dans : {shp_file}")
+print(f"GeoJSON des bordures du carré créé dans : {geojson_file}")

@@ -1,5 +1,5 @@
 import os
-import fiona
+import json
 from shapely.geometry import mapping, Polygon, LineString
 from math import sqrt
 
@@ -54,12 +54,12 @@ def close_snowflake(points):
     return points
 
 
-# Vérifier ou créer un dossier simpleSHP
-output_folder = "simpleSHP"
+# Vérifier ou créer un dossier simpleGEO
+output_folder = "simpleGEO"
 os.makedirs(output_folder, exist_ok=True)
 
 # Chemin complet où le fichier du flocon de Koch sera sauvegardé
-shp_file = os.path.join(output_folder, "koch_snowflake2.shp")
+geojson_file = os.path.join(output_folder, "koch_snowflake2.geojson")
 
 # Paramètres initiaux pour le flocon de Koch
 iterations = 5  # Nombre d'itérations
@@ -73,25 +73,20 @@ points = (
 )
 points = close_snowflake(points)  # Ferme le flocon pour former un polygone complet
 
-# Définir le schéma pour le Shapefile
-schema = {
-    'geometry': 'Polygon',  # Type de géométrie (polygone pour le flocon)
-    'properties': {'id': 'int'},  # Attribut "id" pour identifier le polygone
+# Écriture dans un fichier GeoJSON
+polygon = Polygon(points)
+geojson_obj = {
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "geometry": mapping(polygon),
+            "properties": {"id": 1}
+        }
+    ]
 }
 
-# Écriture dans un fichier Shapefile
-with fiona.open(
-    shp_file,
-    mode='w',
-    driver='ESRI Shapefile',
-    crs='EPSG:4326',  # Système de coordonnées (non critique ici car abstrait)
-    schema=schema,
-) as layer:
-    # Créer un polygone à partir des points et ajouter dans la couche
-    polygon = Polygon(points)
-    layer.write({
-        'geometry': mapping(polygon),  # Transformation en format compatible Fiona
-        'properties': {'id': 1},  # Identifiant unique
-    })
+with open(geojson_file, 'w') as f:
+    json.dump(geojson_obj, f)
 
-print(f"Shapefile représentant le flocon de Koch (itérations={iterations}) créé : {shp_file}")
+print(f"GeoJSON représentant le flocon de Koch (itérations={iterations}) créé : {geojson_file}")

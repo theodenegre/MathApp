@@ -1,5 +1,5 @@
 import os
-import fiona
+import json
 from shapely.geometry import Polygon, mapping
 from itertools import product
 
@@ -54,12 +54,12 @@ def rectangle_to_polygon(x, y, width, height):
     ])
 
 
-# Vérifier ou créer un dossier simpleSHP
-output_folder = "simpleSHP"
+# Vérifier ou créer un dossier simpleGEO
+output_folder = "simpleGEO"
 os.makedirs(output_folder, exist_ok=True)
 
 # Chemin pour le fichier généré
-shp_file = os.path.join(output_folder, "menger_sponge_rectangular.shp")
+geojson_file = os.path.join(output_folder, "menger_sponge_rectangular.geojson")
 
 # Paramètres initiaux : taille, itérations, coordonnées de départ
 iterations = 1  # Attention, la croissance est exponentielle !
@@ -70,30 +70,25 @@ initial_coords = (0, 0)  # Coordonnées du coin inférieur-gauche initial
 # Générer les rectangles de l'éponge de Menger adaptée
 rectangles = menger_sponge_2d(initial_coords, initial_width, initial_height, iterations)
 
-# Définir le schéma pour écrire dans le fichier Shapefile
-schema = {
-    'geometry': 'Polygon',  # Type de géométrie représentée (polygone en 2D)
-    'properties': {'id': 'int'},  # Ajouter une propriété ID pour chaque élément
+# Construire les entités GeoJSON
+features = []
+for i, rectangle in enumerate(rectangles, start=1):
+    x, y, width, height = rectangle
+    poly = rectangle_to_polygon(x, y, width, height)
+    features.append({
+        "type": "Feature",
+        "geometry": mapping(poly),
+        "properties": {"id": i}
+    })
+
+# Structure GeoJSON
+geojson_data = {
+    "type": "FeatureCollection",
+    "features": features
 }
 
-# Écriture dans un fichier Shapefile
-with fiona.open(
-    shp_file,
-    mode='w',
-    driver='ESRI Shapefile',
-    crs='EPSG:4326',  # Système de projection (abstrait ici)
-    schema=schema,
-) as layer:
-    polygon_id = 0
-    for rectangle in rectangles:
-        x, y, width, height = rectangle
+# Écriture dans un fichier GeoJSON
+with open(geojson_file, "w", encoding="utf-8") as f:
+    json.dump(geojson_data, f, ensure_ascii=False, indent=4)
 
-        # Créer un polygone pour ce rectangle
-        poly = rectangle_to_polygon(x, y, width, height)
-        polygon_id += 1
-        layer.write({
-            'geometry': mapping(poly),  # Transformation en format compatible Fiona
-            'properties': {'id': polygon_id},  # Un ID unique pour chaque rectangle
-        })
-
-print(f"Shapefile représentant l'éponge de Menger en 2D avec division 3x5 (itérations={iterations}) créé : {shp_file}")
+print(f"GeoJSON représentant l'éponge de Menger en 2D avec division 3x5 (itérations={iterations}) créé : {geojson_file}")

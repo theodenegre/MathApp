@@ -1,5 +1,5 @@
 import os
-import fiona
+import json
 from shapely.geometry import mapping, Point
 from tqdm import tqdm
 
@@ -21,11 +21,11 @@ def mandelbrot(c, max_iterations):
 
 
 # Créer un dossier pour le fichier de sortie
-output_folder = "simpleSHP"
+output_folder = "simpleGEO"
 os.makedirs(output_folder, exist_ok=True)
 
 # Chemin où le fichier de Mandelbrot sera sauvegardé
-shp_file = os.path.join(output_folder, "mandelbrot.shp")
+geojson_file = os.path.join(output_folder, "mandelbrot.geojson")
 
 # Définir les limites du plan complexe à explorer et la résolution
 x_min, x_max = -3, 2.0  # Limites pour les parties réelles
@@ -39,31 +39,29 @@ max_iterations = 100
 x_values = [x_min + (x_max - x_min) * i / resolution for i in range(resolution)]
 y_values = [y_min + (y_max - y_min) * i / resolution for i in range(resolution)]
 
-# Définir le schéma pour le Shapefile
-schema = {
-    'geometry': 'Point',  # Type de géométrie (point)
-    'properties': {'iterations': 'int'},  # Attribut représentant le nombre d'itérations avant échappement
+# Construire les entités GeoJSON
+features = []
+for x in tqdm(x_values, desc="Calcul de l'ensemble de Mandelbrot"):
+    for y in y_values:
+        c = complex(x, y)  # Les coordonnées dans le plan complexe
+        iterations = mandelbrot(c, max_iterations)  # Calculer le nombre d'itérations
+        if iterations == max_iterations:
+            # Ajouter le point uniquement s'il appartient (approximativement) à l'ensemble de Mandelbrot
+            point = Point(x, y)
+            features.append({
+                "type": "Feature",
+                "geometry": mapping(point),
+                "properties": {"iterations": iterations}
+            })
+
+# Structure GeoJSON
+geojson_data = {
+    "type": "FeatureCollection",
+    "features": features
 }
 
-# Écriture dans un fichier Shapefile
-with fiona.open(
-    shp_file,
-    mode='w',
-    driver='ESRI Shapefile',
-    crs='EPSG:4326',  # Système de coordonnées fictif pour les besoins de visualisation
-    schema=schema,
-) as layer:
-    # Itérer sur chaque point de la grille
-    for x in tqdm(x_values, desc="Calcul de l'ensemble de Mandelbrot"):
-        for y in y_values:
-            c = complex(x, y)  # Les coordonnées dans le plan complexe
-            iterations = mandelbrot(c, max_iterations)  # Calculer le nombre d'itérations
-            if iterations == max_iterations:
-                # Ajouter le point uniquement s'il appartient (approximativement) à l'ensemble de Mandelbrot
-                point = Point(x, y)
-                layer.write({
-                    'geometry': mapping(point),  # Transformation en format compatible Fiona
-                    'properties': {'iterations': iterations},  # Ajout du niveau d'échappement
-                })
+# Écriture dans un fichier GeoJSON
+with open(geojson_file, "w", encoding="utf-8") as f:
+    json.dump(geojson_data, f, ensure_ascii=False, indent=4)
 
-print(f"Shapefile représentant l'ensemble de Mandelbrot créé : {shp_file}")
+print(f"GeoJSON représentant l'ensemble de Mandelbrot créé : {geojson_file}")
