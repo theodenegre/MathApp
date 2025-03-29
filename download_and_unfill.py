@@ -76,7 +76,7 @@ existing = [a.split("_")[0] for a in existing]
 existing = [a for a in existing if len(a) == 3]
 existing.sort()
 start = existing[-1]
-code_to_pass = ["CON"] # car bug bizarrement pour le code "CON", alors qu'il n'existe pas de pays avec ce code
+code_to_pass = ["CON", "FLX"] # car bug bizarrement pour ceux là
 country_codes = [a + b + c for a in string.ascii_uppercase for b in string.ascii_uppercase for c in string.ascii_uppercase if a + b + c not in code_to_pass and a + b + c > start]
 for country_code in country_codes:
     full_path = f"coastlines/full/{country_code}.geojson"

@@ -1,12 +1,15 @@
 import os
 import subprocess
 import pandas as pd
-from time import time_ns
+from time import time_ns, sleep
+
 
 def clean():
+    sleep(1)
     for filename in os.listdir(coastlines_dir):
         if filename.endswith(".xml") or filename.endswith(".txt"):
             os.remove(os.path.join(coastlines_dir, filename))
+    sleep(1)
 
 fractalyse_jar = "fractalyse-3.0-0.9.1.jar"
 coastlines_dir = "coastlines/contour"
@@ -35,6 +38,8 @@ for filename in os.listdir(coastlines_dir):
         subprocess.run(command)
         durations.append(round((time_ns() - start) / 1e9))
 
+sleep(1)
+
 # Deuxième boucle pour traiter les fichiers .txt
 for filename in os.listdir(coastlines_dir):
     if filename[:3] in specials:
@@ -47,6 +52,8 @@ for filename in os.listdir(coastlines_dir):
         pays.append(filename[:3])
         dim.append(fractal_dim)
         print(f"Pays: {filename[:3]}, Dimension fractale: {fractal_dim}")
+
+sleep(1)
 
 # Crée le classement et l'enregistre dans un fichier CSV
 df = pd.DataFrame(
