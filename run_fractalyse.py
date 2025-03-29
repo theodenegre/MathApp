@@ -53,6 +53,10 @@ for filename in os.listdir(coastlines_dir):
         dim.append(fractal_dim)
         print(f"Pays: {filename[:3]}, Dimension fractale: {fractal_dim}")
 
+print(f"{len(pays) = }, {len(dim) = }, {len(durations) = }")
+print("Durée totale :", sum(durations), "secondes")
+print("Durée moyenne :", sum(durations) / len(durations), "secondes")
+
 sleep(1)
 
 # Crée le classement et l'enregistre dans un fichier CSV
