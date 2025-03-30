@@ -10,6 +10,10 @@ def clean():
         if filename.endswith(".xml") or filename.endswith(".txt"):
             os.remove(os.path.join(coastlines_dir, filename))
     sleep(1)
+    for filename in os.listdir(coastlines_dir):
+        if filename.startswith("box_glid"):
+            os.remove(os.path.join(coastlines_dir, filename))
+    sleep(1)
 
 fractalyse_jar = "fractalyse-3.0-0.9.1.jar"
 coastlines_dir = "coastlines/contour"
@@ -64,5 +68,7 @@ df = pd.DataFrame(
     {"Pays": pays, "Dimension fractale": dim, "durée": durations}
 ).sort_values("Dimension fractale", ascending=False).to_csv(
     "fractal_dimensions.csv", index=False)
+
+print("Résultats enregistrés dans fractal_dimensions.csv")
 
 clean()
