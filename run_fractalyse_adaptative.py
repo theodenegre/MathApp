@@ -85,10 +85,10 @@ for filename in os.listdir(coastlines_dir):
             f"Calcul pour : {filename[:3]} avec min_value={float(min_value):.2e} et max_value={float(max_value):.2e}")
         subprocess.run(command, stdout=subprocess.DEVNULL)
         durations.append(round((time_ns() - start) / 1e9))
-        box_min.append(min_value)
-        box_max.append(max_value)
+        box_min.append(f"{float(min_value):.2e}")
+        box_max.append(f"{float(max_value):.2e}")
 
-sleep(1)
+        sleep(1)
 
 # Deuxième boucle pour traiter les fichiers .txt
 for filename in os.listdir(coastlines_dir):
