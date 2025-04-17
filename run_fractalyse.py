@@ -22,7 +22,7 @@ coastlines_dir = "coastlines/contour"
 min_value = "1E-1"
 max_value = "1.0"
 
-specials = ["ATA"]
+specials = ["ATA", "GRL", "CAN", "USA", "RUS"]
 
 clean()
 
