@@ -67,7 +67,7 @@ sleep(1)
 df = pd.DataFrame(
     {"Pays": pays, "Dimension fractale": dim, "durée": durations}
 ).sort_values("Dimension fractale", ascending=False).to_csv(
-    "fractal_dimensions.csv", index=False)
+        "results/fractal_dimensions.csv", index=False)
 
 print("Résultats enregistrés dans fractal_dimensions.csv")
 

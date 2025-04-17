@@ -114,7 +114,7 @@ df = pd.DataFrame(
         {"Pays"   : pays, "Dimension fractale": dim, "durée": durations,
          "box_min": box_min, "box_max": box_max}).sort_values(
     "Dimension fractale", ascending=False).to_csv(
-        "fractal_dimensions_adaptative.csv", index=False)
+        "results/fractal_dimensions_adaptative.csv", index=False)
 
 print("Résultats enregistrés dans fractal_dimensions_adaptative.csv")
 

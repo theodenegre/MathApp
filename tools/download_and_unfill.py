@@ -71,7 +71,7 @@ def process_geojson(input_filepath, output_filepath, country_code):
 # Télécharger les contours de tous les pays dans la base de données
 import string
 
-existing = os.listdir("coastlines/contour")
+existing = os.listdir("../coastlines/contour")
 existing = [a.split("_")[0] for a in existing]
 existing = [a for a in existing if len(a) == 3]
 existing.sort()
