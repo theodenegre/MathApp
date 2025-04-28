@@ -27,7 +27,7 @@ os.makedirs(output_folder, exist_ok=True)
 geojson_file = os.path.join(output_folder, "cantor.geojson")
 
 # Générer l'ensemble de Cantor
-iterations = 5
+iterations = 11
 initial_interval = (0, 1)
 segments = cantor(initial_interval, iterations)
 
